@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper.UnitOfWork.Example.Data;
 using Dapper.UnitOfWork.Example.Data.Commands;
@@ -40,13 +41,19 @@ namespace Dapper.UnitOfWork.Example
 
 			void PrintCustomer(string customerId)
 			{
-				// simple query
+				// query
 				using (var uow = factory.Create())
 				{
+                    // simple query
 					var customer = uow.Query(new GetCustomerByIdQuery(customerId));
 
 					Console.WriteLine($"Retrieved: {customer.CompanyName}");
-				}
+
+                    // query with lazy loading
+                    var person = uow.Query(new GetPersonByIdQuery(1));
+
+                    Console.WriteLine($"Person: {person.Name} ({person.Address.Street})");
+                }
 			}
 		}
 
@@ -59,6 +66,10 @@ namespace Dapper.UnitOfWork.Example
                 var customer = await uow.QueryAsync(new GetCustomerByIdQuery("ALFKI"));
 
                 Console.WriteLine($"Retrieved asynchronously: {customer.CompanyName}");
+
+                // query the table for one result
+                var people = await uow.QueryAsyncList(new GetPersonByIdQuery(1));
+                Console.WriteLine($"Person: {people.FirstOrDefault()?.Name} ({people.FirstOrDefault()?.Address?.Street})");
             }
         }
     }
