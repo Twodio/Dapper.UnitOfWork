@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,8 +9,10 @@ namespace Dapper.UnitOfWork
 	public interface IUnitOfWork : IDisposable
 	{
 		T Query<T>(IQuery<T> query);
+        IEnumerable<T> QueryList<T>(IQueryList<T> query);
         Task<T> QueryAsync<T>(IAsyncQuery<T> query, CancellationToken cancellationToken = default);
-		void Execute(ICommand command);
+        Task<IEnumerable<T>> QueryAsyncList<T>(IAsyncQueryList<T> query, CancellationToken cancellationToken = default);
+        void Execute(ICommand command);
         Task ExecuteAsync(IAsyncCommand command, CancellationToken cancellationToken = default);
 		T Execute<T>(ICommand<T> command);
         Task<T> ExecuteAsync<T>(IAsyncCommand<T> command, CancellationToken cancellation = default);
@@ -43,7 +46,13 @@ namespace Dapper.UnitOfWork
         public Task<T> QueryAsync<T>(IAsyncQuery<T> query, CancellationToken cancellationToken = default)
             => Retry.DoAsync(() => query.ExecuteAsync(_connection, _transaction, cancellationToken), _retryOptions);
 
-		public void Execute(ICommand command)
+        public IEnumerable<T> QueryList<T>(IQueryList<T> query)
+            => Retry.Do(() => query.ExecuteList(_connection, _transaction), _retryOptions);
+
+        public Task<IEnumerable<T>> QueryAsyncList<T>(IAsyncQueryList<T> query, CancellationToken cancellationToken = default)
+            => Retry.DoAsync(() => query.ExecuteAsyncList(_connection, _transaction, cancellationToken), _retryOptions);
+
+        public void Execute(ICommand command)
 		{
 			if (command.RequiresTransaction && _transaction == null)
 				throw new Exception($"The command {command.GetType()} requires a transaction");
